@@ -1,6 +1,6 @@
 .{
     .name = .zigcord_utils,
-    .version = "0.0.0",
+    .version = "0.0.1",
     .fingerprint = 0x4b890cb189b29e3,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},

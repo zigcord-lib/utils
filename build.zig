@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     _ = optimize;
 
-    const mod = b.addModule("utils", .{
+    const mod = b.addModule("zigcord-utils", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
     });
