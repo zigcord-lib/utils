@@ -72,6 +72,6 @@ test "deserialize from JSON with using struct" {
     defer parsed.deinit();
 
     try testing.expect(parsed.value.nick == .missing);
-    try testing.expect(parsed.value.avatar == .present);
+    try testing.expect(parsed.value.avatar.present == null);
     try testing.expectEqualStrings("hash", parsed.value.banner.present.?);
 }
