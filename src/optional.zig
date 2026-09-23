@@ -16,6 +16,10 @@ pub fn Optional(comptime T: type) type {
             };
         }
 
+        pub fn jsonStringifySkippable(self: *const Self) bool {
+            return self.* == .missing;
+        }
+
         pub fn jsonParse(
             allocator: mem.Allocator,
             source: *json.Scanner,
@@ -57,7 +61,7 @@ pub fn Optional(comptime T: type) type {
 
 const testing = std.testing;
 
-test "deserialize from JSON with using struct" {
+test "Optional: deserialize from JSON with using struct" {
     const Member = struct {
         nick: Optional(?[]const u8) = .missing,
         avatar: Optional(?[]const u8) = .missing,
@@ -74,4 +78,29 @@ test "deserialize from JSON with using struct" {
     try testing.expect(parsed.value.nick == .missing);
     try testing.expect(parsed.value.avatar.present == null);
     try testing.expectEqualStrings("hash", parsed.value.banner.present.?);
+}
+
+test "Optional: serialize to JSON with skip" {
+    const json_utils = @import("./json.zig");
+
+    const Member = struct {
+        const Self = @This();
+
+        nick: Optional([]const u8) = .missing,
+        avatar: Optional(?[]const u8) = .missing,
+        banner: []const u8,
+
+        pub fn jsonStringify(self: *const Self, jws: *json.Stringify) !void {
+            return json_utils.stringifyStruct(self, jws);
+        }
+    };
+
+    const raw = try json.Stringify.valueAlloc(testing.allocator, Member{
+        .nick = .missing,
+        .avatar = .{ .present = null },
+        .banner = "hash",
+    }, .{});
+    defer testing.allocator.free(raw);
+
+    std.debug.print("{s}\n", .{raw});
 }
