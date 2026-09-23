@@ -2,18 +2,17 @@ const std = @import("std");
 const mem = std.mem;
 const json = std.json;
 
-pub fn Nullable(comptime T: type) type {
+pub fn Optional(comptime T: type) type {
     return union(enum) {
         const Self = @This();
 
         missing,
-        null,
-        value: T,
+        present: T,
 
         pub fn get(self: Self) ?T {
             return switch (self) {
-                .value => |v| v,
-                else => null,
+                .present => |v| v,
+                .missing => null,
             };
         }
 
@@ -22,13 +21,8 @@ pub fn Nullable(comptime T: type) type {
             source: *json.Scanner,
             options: json.ParseOptions,
         ) !Self {
-            if (try source.peekNextTokenType() == .null) {
-                _ = try source.next();
-                return .null;
-            }
-
             return .{
-                .value = try json.innerParse(
+                .present = try json.innerParse(
                     T,
                     allocator,
                     source,
@@ -42,10 +36,8 @@ pub fn Nullable(comptime T: type) type {
             source: json.Value,
             options: json.ParseOptions,
         ) !Self {
-            if (source == .null) return .null;
-
             return .{
-                .value = try json.innerParseFromValue(
+                .present = try json.innerParseFromValue(
                     T,
                     allocator,
                     source,
@@ -57,8 +49,7 @@ pub fn Nullable(comptime T: type) type {
         pub fn jsonStringify(self: Self, jws: *json.Stringify) !void {
             return switch (self) {
                 .missing => error.WriteFailed,
-                .null => jws.write(null),
-                .value => |v| jws.write(v),
+                .present => |v| jws.write(v),
             };
         }
     };
@@ -68,19 +59,19 @@ const testing = std.testing;
 
 test "deserialize from JSON with using struct" {
     const Member = struct {
-        nick: Nullable([]const u8) = .missing,
-        avatar: Nullable([]const u8) = .missing,
-        banner: Nullable([]const u8) = .missing,
+        nick: Optional(?[]const u8) = .missing,
+        avatar: Optional(?[]const u8) = .missing,
+        banner: Optional(?[]const u8) = .missing,
     };
 
     const raw_json =
         \\{"avatar": null, "banner": "hash"}
     ;
 
-    var parsed = try json.parseFromSlice(Member, testing.allocator, raw_json, .{});
+    const parsed = try json.parseFromSlice(Member, testing.allocator, raw_json, .{});
     defer parsed.deinit();
 
     try testing.expect(parsed.value.nick == .missing);
-    try testing.expect(parsed.value.avatar == .null);
-    try testing.expectEqualStrings("hash", parsed.value.banner.get().?);
+    try testing.expect(parsed.value.avatar == .present);
+    try testing.expectEqualStrings("hash", parsed.value.banner.present.?);
 }
